@@ -57,7 +57,10 @@ struct MenuView: View {
     private var header: some View {
         HStack(spacing: 8) {
             PadShape()
-                .fill(Color.accentColor.gradient)
+                // Green rather than the system accent: the pad is the app's
+                // identity, and it matches the cooling fill and the
+                // target-reached banner.
+                .fill(Color.green.gradient)
                 .frame(width: 16, height: 16)
             Text("Lilypad")
                 .font(.headline)
