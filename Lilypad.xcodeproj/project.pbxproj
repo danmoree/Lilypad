@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7AAA0000000000000000000B /* com.lilypad.helper in Embed Privileged Helper */ = {isa = PBXBuildFile; fileRef = 7AAA00000000000000000001 /* com.lilypad.helper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		7AAA00000000000000000020 /* SMCKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AAA00000000000000000010 /* SMCKit.swift */; };
 		7AAA00000000000000000021 /* FanControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AAA00000000000000000011 /* FanControl.swift */; };
 		7AAA00000000000000000022 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AAA00000000000000000012 /* HelperProtocol.swift */; };
@@ -15,7 +16,6 @@
 		7AAA00000000000000000025 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AAA00000000000000000012 /* HelperProtocol.swift */; };
 		7AAA00000000000000000026 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AAA00000000000000000013 /* main.swift */; };
 		7AAA00000000000000000027 /* HelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AAA00000000000000000014 /* HelperService.swift */; };
-		7AAA0000000000000000000B /* com.lilypad.helper in Embed Privileged Helper */ = {isa = PBXBuildFile; fileRef = 7AAA00000000000000000001 /* com.lilypad.helper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,7 +32,7 @@
 		7AAA0000000000000000000A /* Embed Privileged Helper */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "Contents/Library/PrivilegedHelperTools";
+			dstPath = Contents/Library/PrivilegedHelperTools;
 			dstSubfolderSpec = 1;
 			files = (
 				7AAA0000000000000000000B /* com.lilypad.helper in Embed Privileged Helper */,
