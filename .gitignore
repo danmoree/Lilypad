@@ -1,0 +1,17 @@
+## macOS
+.DS_Store
+
+## Xcode per-user state
+# Window layout, breakpoints, scheme ordering and selection. Local to one
+# developer on one machine, and it churns on almost every Xcode launch.
+xcuserdata/
+*.xcuserstate
+
+## Build output
+build/
+DerivedData/
+*.dSYM
+
+## Swift Package Manager
+.build/
+.swiftpm/
