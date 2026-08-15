@@ -1,4 +1,4 @@
-# Lilypad
+# Lilypad - Cool your lap!
 
 A menu bar app that takes over your MacBook Pro's fans for a while, so the
 bottom case cools down to a temperature that's comfortable on a lap.
