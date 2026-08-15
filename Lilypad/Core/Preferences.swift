@@ -37,9 +37,19 @@ final class Preferences {
         didSet { defaults.set(autoEngage, forKey: Keys.autoEngage) }
     }
 
-    var autoEngageCelsius: Double {
-        didSet { defaults.set(autoEngageCelsius, forKey: Keys.autoEngageTemp) }
-    }
+    /// Gap between the target and the temperature that starts a session on its
+    /// own — ordinary thermostat hysteresis.
+    ///
+    /// It cannot be zero. A session ends the moment the case reaches the
+    /// target, so if auto-engage also fired at the target the case would drift
+    /// back over it within seconds and the fans would cycle on and off
+    /// continuously. Three degrees is wide enough to make each session worth
+    /// running and narrow enough that the case never gets properly hot.
+    static let autoEngageDeadband = 3.0
+
+    /// Case temperature that starts a session automatically. Derived from the
+    /// target so there is only one temperature to think about.
+    var autoEngageCelsius: Double { targetCelsius + Self.autoEngageDeadband }
 
     var showTemperatureInMenuBar: Bool {
         didSet { defaults.set(showTemperatureInMenuBar, forKey: Keys.showTemp) }
@@ -59,7 +69,6 @@ final class Preferences {
         static let maxMinutes = "maxMinutes"
         static let intensity = "intensity"
         static let autoEngage = "autoEngage"
-        static let autoEngageTemp = "autoEngageCelsius"
         static let showTemp = "showTemperatureInMenuBar"
         static let fahrenheit = "useFahrenheit"
         static let extraSensors = "includeExtraSensors"
@@ -71,7 +80,6 @@ final class Preferences {
             Keys.maxMinutes: 15,
             Keys.intensity: 0.8,
             Keys.autoEngage: false,
-            Keys.autoEngageTemp: 40.0,
             Keys.showTemp: true,
             Keys.fahrenheit: false,
             Keys.extraSensors: false,
@@ -80,7 +88,6 @@ final class Preferences {
         maxMinutes = defaults.integer(forKey: Keys.maxMinutes)
         intensity = defaults.double(forKey: Keys.intensity)
         autoEngage = defaults.bool(forKey: Keys.autoEngage)
-        autoEngageCelsius = defaults.double(forKey: Keys.autoEngageTemp)
         showTemperatureInMenuBar = defaults.bool(forKey: Keys.showTemp)
         useFahrenheit = defaults.bool(forKey: Keys.fahrenheit)
         includeExtraSensors = defaults.bool(forKey: Keys.extraSensors)
@@ -104,6 +111,15 @@ final class Preferences {
     func formatWithUnit(_ celsius: Double, decimals: Int = 1) -> String {
         let value = useFahrenheit ? celsius * 9 / 5 + 32 : celsius
         return String(format: "%.\(decimals)f°\(useFahrenheit ? "F" : "C")", value)
+    }
+
+    /// Formats a temperature *difference* rather than a reading.
+    ///
+    /// A delta scales by the 9/5 ratio alone — applying the +32 offset as well
+    /// would render a 3 °C gap as "37 °F".
+    func formatDelta(_ celsius: Double, decimals: Int = 0) -> String {
+        let value = useFahrenheit ? celsius * 9 / 5 : celsius
+        return String(format: "%.\(decimals)f°", value)
     }
 
     /// Slider bounds for the target, expressed in the display unit.

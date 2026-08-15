@@ -142,7 +142,9 @@ final class ThermalMonitor {
         guard timer == nil else { return }
         refresh()
         let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+            // Added to the main run loop below, so this always fires on the
+            // main thread — no need to hop through a Task to reach the actor.
+            MainActor.assumeIsolated { self?.refresh() }
         }
         timer.tolerance = interval * 0.2
         RunLoop.main.add(timer, forMode: .common)

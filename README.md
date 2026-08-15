@@ -60,15 +60,25 @@ The comfort labels follow ordinary contact-comfort guidance — skin stops readi
 a surface as neutral around 33 °C, and sustained contact above roughly 42 °C is
 where low-temperature burn advice begins. Default target is 34 °C.
 
-### The Fan noise slider is a speed, not a ceiling
+### Fan speed is open loop, and that is on purpose
 
-"Maximum" commands the firmware's maximum RPM whenever the case is meaningfully
-above target — it is not a limit that a proportional term works up to. An
-earlier version treated it as a ceiling with a 5 °C ramp band, which left the
-fans at 44% while the slider read "Maximum"; case temperature moves in far too
-narrow a range for a band that wide. The only modulation left is a taper inside
-the last 1 °C, so the fans ease off instead of roaring to chase a final fraction
-of a degree.
+The Fan noise slider sets a speed directly — "Maximum" means the firmware's
+maximum RPM — and that speed is held constant for the whole session. It does
+not vary with how close the case is to the target.
+
+Two earlier attempts got this wrong, both by modulating on the error:
+
+1. A ceiling with a 5 °C proportional band. Case temperature moves in far too
+   narrow a range for a band that wide, so the fans sat at 44% while the slider
+   read "Maximum".
+2. A taper over the last 1 °C. This oscillated: the fans respond in seconds but
+   the case takes minutes, so easing off near the target let the case warm
+   straight back up, which wound the fans up again. Audible as constant
+   surging, and it never settled.
+
+Holding one speed until the target is actually reached is both quieter and
+faster. The only remaining variation is the die-temperature override, which
+goes to maximum regardless.
 
 ## Safety
 

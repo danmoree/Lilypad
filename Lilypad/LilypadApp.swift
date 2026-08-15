@@ -40,7 +40,9 @@ final class AppModel {
         monitor.start(interval: 2)
 
         let timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.tick() }
+            // Added to the main run loop below, so this always fires on the
+            // main thread — no need to hop through a Task to reach the actor.
+            MainActor.assumeIsolated { self?.tick() }
         }
         timer.tolerance = 1
         RunLoop.main.add(timer, forMode: .common)
@@ -95,6 +97,7 @@ struct LilypadApp: App {
             Image(nsImage: PadIcon.statusItemImage(
                 progress: model.engine.progress,
                 active: model.engine.phase.isActive,
+                reachedTarget: model.engine.hasReachedTarget,
                 label: model.menuBarLabel))
         }
         .menuBarExtraStyle(.window)

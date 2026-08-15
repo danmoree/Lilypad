@@ -133,7 +133,7 @@ nonisolated enum SMCError: Error, CustomStringConvertible {
 }
 
 /// IOKit's `kIOReturnNotPrivileged`, returned when a non-root process writes.
-private let kSMCReturnNotPrivileged = kern_return_t(bitPattern: 0xE000_02C1)
+private nonisolated let kSMCReturnNotPrivileged = kern_return_t(bitPattern: 0xE000_02C1)
 
 // MARK: - Connection
 

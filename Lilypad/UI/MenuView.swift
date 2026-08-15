@@ -83,6 +83,7 @@ struct MenuView: View {
             } label: {
                 PadButtonFace(progress: engine.progress,
                               isActive: engine.phase.isActive,
+                              reachedTarget: engine.hasReachedTarget,
                               temperature: monitor.lapTemperature,
                               preferences: preferences)
             }
@@ -93,6 +94,11 @@ struct MenuView: View {
                 .foregroundStyle(engine.phase.isActive ? .primary : .secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
+
+            if engine.hasReachedTarget {
+                ReachedBanner(secondsLeft: engine.settleSecondsRemaining,
+                              isConfirming: engine.phase == .settling)
+            }
 
             if engine.isStalled {
                 Notice(icon: "flame", tone: .warning,
@@ -129,7 +135,7 @@ struct MenuView: View {
         case .cooling:
             return "Cooling · \(timeString(engine.secondsRemaining)) left"
         case .settling:
-            return "Almost there · holding at target"
+            return "Target reached"
         case .finished(let outcome):
             switch outcome {
             case .reachedTarget(let seconds):
@@ -149,8 +155,22 @@ struct MenuView: View {
     private var readout: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !monitor.history.isEmpty {
-                Sparkline(values: monitor.history, target: preferences.targetCelsius)
-                    .frame(height: 34)
+                let bounds = Sparkline.bounds(values: monitor.history,
+                                              target: preferences.targetCelsius)
+                HStack(spacing: 5) {
+                    // Without these the chart has no scale at all, and a steady
+                    // case temperature is indistinguishable from a broken graph.
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text(preferences.format(bounds.upperBound, decimals: 0))
+                        Spacer(minLength: 0)
+                        Text(preferences.format(bounds.lowerBound, decimals: 0))
+                    }
+                    .font(.system(size: 9).monospacedDigit())
+                    .foregroundStyle(.tertiary)
+
+                    Sparkline(values: monitor.history, target: preferences.targetCelsius)
+                }
+                .frame(height: 34)
             }
 
             HStack {
@@ -231,13 +251,15 @@ struct MenuView: View {
             .toggleStyle(.checkbox)
 
             if preferences.autoEngage {
-                LabeledSlider(
-                    title: "Trigger",
-                    value: $preferences.autoEngageCelsius,
-                    range: 34...46,
-                    step: 0.5,
-                    caption: preferences.formatWithUnit(preferences.autoEngageCelsius, decimals: 0)
-                )
+                // The trigger deliberately isn't its own setting: it tracks the
+                // target, and the gap is what stops the fans short-cycling.
+                Text("Follows your target, plus a "
+                     + "\(preferences.formatDelta(Preferences.autoEngageDeadband)) margin "
+                     + "so the fans don't switch on and off repeatedly.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, 20)
             }
         }
     }
@@ -385,10 +407,19 @@ struct MenuView: View {
 private struct PadButtonFace: View {
     let progress: Double
     let isActive: Bool
+    let reachedTarget: Bool
     let temperature: Double?
     let preferences: Preferences
 
     @State private var isHovering = false
+
+    /// Height of the green fill, 0...1. Area-corrected, and held short of the
+    /// top until the target is actually met — see `PadGeometry`.
+    private var fillHeight: Double {
+        guard isActive else { return 0 }
+        return PadGeometry.displayFillHeight(progress: progress,
+                                             reachedTarget: reachedTarget)
+    }
 
     var body: some View {
         ZStack {
@@ -401,11 +432,11 @@ private struct PadButtonFace: View {
                 .mask(alignment: .bottom) {
                     GeometryReader { geometry in
                         Rectangle()
-                            .frame(height: geometry.size.height * (isActive ? progress : 0))
+                            .frame(height: geometry.size.height * fillHeight)
                             .frame(maxHeight: .infinity, alignment: .bottom)
                     }
                 }
-                .animation(.easeInOut(duration: 0.6), value: progress)
+                .animation(.easeInOut(duration: 0.6), value: fillHeight)
 
             PadShape()
                 .stroke(isActive ? Color.green : Color.secondary.opacity(0.5), lineWidth: 2)
@@ -455,6 +486,41 @@ private struct LabeledSlider: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 62, alignment: .trailing)
         }
+    }
+}
+
+/// Shown the moment the case meets the target, while the fans are still running
+/// out the confirmation window — so there's a visible cue *before* they stop,
+/// not just after.
+private struct ReachedBanner: View {
+    let secondsLeft: Int
+    let isConfirming: Bool
+
+    @State private var hasAppeared = false
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .symbolEffect(.bounce, value: hasAppeared)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Target reached")
+                    .font(.caption.weight(.semibold))
+                if isConfirming {
+                    Text("Holding \(secondsLeft)s to confirm, then the fans "
+                         + "go back to automatic.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+        .transition(.opacity.combined(with: .scale(scale: 0.97)))
+        .onAppear { hasAppeared = true }
     }
 }
 
@@ -523,11 +589,16 @@ private struct Sparkline: View {
 
     /// Always include the target so the dashed line stays on screen, and pad by
     /// a degree so a flat trace doesn't collapse onto the edge.
-    private var range: ClosedRange<Double> {
+    ///
+    /// Static so the axis labels beside the chart are derived from exactly the
+    /// same numbers the trace is drawn with.
+    static func bounds(values: [Double], target: Double) -> ClosedRange<Double> {
         let lower = min(values.min() ?? target, target) - 1
         let upper = max(values.max() ?? target, target) + 1
         return lower...upper
     }
+
+    private var range: ClosedRange<Double> { Self.bounds(values: values, target: target) }
 
     private func yPosition(for value: Double, in size: CGSize,
                            bounds: ClosedRange<Double>, span: Double) -> CGFloat {

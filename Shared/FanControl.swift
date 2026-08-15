@@ -169,7 +169,10 @@ nonisolated final class FanController: @unchecked Sendable {
 // MARK: - Helpers
 
 extension Comparable {
-    func clamped(to range: ClosedRange<Self>) -> Self {
+    /// Explicitly nonisolated: the app target compiles with MainActor default
+    /// isolation, which would otherwise make this helper unusable from the SMC
+    /// and helper code that runs off the main actor.
+    nonisolated func clamped(to range: ClosedRange<Self>) -> Self {
         min(max(self, range.lowerBound), range.upperBound)
     }
 }
