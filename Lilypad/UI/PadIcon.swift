@@ -13,23 +13,39 @@
 import AppKit
 import SwiftUI
 
+/// Geometry for the lily pad mark, shared by both renderers so the menu bar
+/// icon and the on-screen pad can't drift apart.
+///
+/// `notchHeading` follows the standard maths convention: degrees
+/// counter-clockwise from the +x axis in a **y-up** space, which is what
+/// `NSBezierPath` uses. SwiftUI's `Path` lives in a y-down space where positive
+/// angles sweep clockwise on screen, so `PadShape` negates it. Without that
+/// correction the two marks come out mirrored across the horizontal axis —
+/// the notch points down-right in the menu bar and up-right in the panel.
+nonisolated enum PadGeometry {
+    /// Angular width of the notch.
+    static let notchDegrees: Double = 42
+    /// Direction the notch points. -35° puts it at the lower right.
+    static let notchHeading: Double = -35
+}
+
 /// A lily pad: a disc with a wedge cut out of one side.
 struct PadShape: Shape {
-    /// Width of the notch, in degrees.
-    var notchDegrees: Double = 42
-    /// Direction the notch points, in degrees (0 = right, counter-clockwise).
-    var notchHeading: Double = -35
+    var notchDegrees: Double = PadGeometry.notchDegrees
+    var notchHeading: Double = PadGeometry.notchHeading
 
     func path(in rect: CGRect) -> Path {
         let radius = min(rect.width, rect.height) / 2
         let centre = CGPoint(x: rect.midX, y: rect.midY)
         let half = notchDegrees / 2
+        // Negated for SwiftUI's y-down coordinate space. See PadGeometry.
+        let heading = -notchHeading
 
         var path = Path()
         path.move(to: centre)
         path.addArc(center: centre, radius: radius,
-                    startAngle: .degrees(notchHeading + half),
-                    endAngle: .degrees(notchHeading - half + 360),
+                    startAngle: .degrees(heading + half),
+                    endAngle: .degrees(heading - half + 360),
                     clockwise: false)
         path.closeSubpath()
         return path
@@ -99,8 +115,9 @@ nonisolated enum PadIcon {
     private static func bezierPad(in rect: CGRect) -> NSBezierPath {
         let radius = min(rect.width, rect.height) / 2
         let centre = CGPoint(x: rect.midX, y: rect.midY)
-        let heading: CGFloat = -35
-        let half: CGFloat = 21
+        // NSBezierPath is already y-up, so the heading is used as declared.
+        let heading = CGFloat(PadGeometry.notchHeading)
+        let half = CGFloat(PadGeometry.notchDegrees / 2)
 
         let path = NSBezierPath()
         path.move(to: centre)
