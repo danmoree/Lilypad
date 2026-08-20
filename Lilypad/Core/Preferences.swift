@@ -43,9 +43,10 @@ final class Preferences {
     /// It cannot be zero. A session ends the moment the case reaches the
     /// target, so if auto-engage also fired at the target the case would drift
     /// back over it within seconds and the fans would cycle on and off
-    /// continuously. Three degrees is wide enough to make each session worth
-    /// running and narrow enough that the case never gets properly hot.
-    static let autoEngageDeadband = 3.0
+    /// continuously. This is stored in Celsius but chosen to read as a round
+    /// 3 °F, the unit most of the UI is set to; the cooldown after a session
+    /// is what keeps a gap this narrow from short-cycling.
+    static let autoEngageDeadband = 1.7
 
     /// Case temperature that starts a session automatically. Derived from the
     /// target so there is only one temperature to think about.

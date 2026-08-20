@@ -62,7 +62,7 @@ final class AppModel {
     var menuBarLabel: String? {
         guard preferences.showTemperatureInMenuBar,
               let temperature = monitor.lapTemperature else { return nil }
-        return preferences.format(temperature, decimals: 0)
+        return preferences.format(temperature, decimals: 1)
     }
 }
 

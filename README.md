@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/icon-dark.png">
+    <img src="docs/icon.png" alt="Lilypad" width="128" height="128">
+  </picture>
+</p>
+
 # Lilypad - Cool your lap!
 
 A menu bar app that takes over your MacBook Pro's fans for a while, so the
@@ -7,9 +14,25 @@ Click the pad, and Lilypad drives the fans harder than the firmware would on its
 own until the enclosure reaches your target temperature — then it hands the fans
 straight back to macOS and gets out of the way.
 
-```
-  ◕ 37°     ← menu bar: the pad fills from the bottom as the case cools
-```
+## Tap the pad
+
+<p align="center">
+  <img src="docs/panel-target-reached.png" alt="Lilypad at the end of a session: the pad is full and green, the banner reads Target reached, holding to confirm before the fans go back to automatic" width="320">
+</p>
+
+One tap and the fans go from the firmware's idle 1350 RPM to the top of their
+range, the pad fills in green as the case cools, and a countdown shows how long
+the session has left. When the case reaches your target Lilypad holds the
+reading for a few seconds to be sure, then hands the fans back to macOS.
+
+<p align="center">
+  <img src="docs/demo.gif" alt="A session reaching its target: the countdown gives way to the Target reached banner while the fans hold at 5350 RPM" width="320">
+</p>
+
+The panel shows the lap temperature, a live trace of it against your target,
+the actual fan RPM with the firmware's own maximum in brackets, and the two
+dials that matter: how cool you want the case, and how much fan noise you'll
+put up with getting there.
 
 ## How it works
 
@@ -133,25 +156,6 @@ Lilypad/
 ├── Lilypad/             the menu bar app (unprivileged)
 │   ├── Core/                sensors, control loop, XPC client, installer
 │   └── UI/                  menu panel and the pad mark
-└── LilypadHelper/       the root daemon
+├── LilypadHelper/       the root daemon
+└── docs/                the images in this README
 ```
-
-## Notes for future work
-
-- **`SMCParamStruct` must be 80 bytes.** Swift does not lay out structs like C:
-  it packs `result`/`status`/`data8` into `SMCKeyInfoData`'s tail padding,
-  yielding 76 bytes and malformed transactions. `SMCKeyInfoData` therefore
-  carries explicit padding, and `SMCConnection.verifyLayout()` asserts the size
-  at runtime. Don't remove either.
-- **`HelperClient.perform` is deliberately non-generic.** A generic version
-  crashes the Swift 6.3 optimiser (infinite recursion in
-  `isCallerAndCalleeLayoutConstraintsCompatible`) when built `-O -wmo` under
-  `-default-isolation MainActor`. Debug builds are unaffected, so this only
-  shows up in Release.
-- Client validation is by PID, which is in principle open to a PID-reuse race.
-  Accepted deliberately: the only capability behind that door is "change a fan
-  speed within limits the firmware already allows".
-- Fanless Macs (MacBook Air) report `FNum = 0`; the app detects this and shows
-  temperatures only.
-- Verified on an M5 Pro MacBook Pro (Mac17,8), macOS 26.6.1. Intel Macs should
-  work via the `F0Md` fallback but are untested.
