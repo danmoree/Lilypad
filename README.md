@@ -10,6 +10,18 @@
 A menu bar app that takes over your MacBook Pro's fans for a while, so the
 bottom case cools down to a temperature that's comfortable on a lap.
 
+Left alone, the firmware runs the fans for the sake of the silicon, not your
+legs. It keeps them near idle and only spins them up once the chip itself is
+close to throttling — which is a perfectly good rule for the machine, and a bad
+one for the person holding it. Long before that point the aluminium underside
+has soaked up enough heat to be genuinely uncomfortable, and nothing in macOS
+will do anything about it, because as far as the firmware is concerned nothing
+is wrong.
+
+Lilypad is the missing knob. It watches the enclosure rather than the die, and
+when you ask it to, it runs the fans hard enough to pull the bottom case down to
+a temperature you picked.
+
 Click the pad, and Lilypad drives the fans harder than the firmware would on its
 own until the enclosure reaches your target temperature — then it hands the fans
 straight back to macOS and gets out of the way.
