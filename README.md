@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/icon-dark.png">
-    <img src="docs/icon.png" alt="Lilypad" width="128" height="128">
-  </picture>
+  <img src="docs/icon.png" alt="Lilypad" width="128" height="128">
 </p>
 
 # Lilypad - Cool your lap!
