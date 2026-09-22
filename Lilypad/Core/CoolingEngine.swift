@@ -63,6 +63,9 @@ final class CoolingEngine {
     /// it, a session that times out while the case is still above the trigger
     /// would restart the moment it went idle and run the fans indefinitely.
     private static let autoEngageCooldown = 180.0
+    /// Failed helper calls in a row before the session is abandoned. At the
+    /// 2-second tick this is past the helper's 8-second heartbeat timeout.
+    private static let maxConsecutiveFailures = 5
 
     // MARK: State
 
@@ -200,12 +203,20 @@ final class CoolingEngine {
         do {
             try await helper.beginSession(maxDurationSeconds: duration)
         } catch {
+            guard !Task.isCancelled else { return }
             lastError = "\(error)"
-            phase = .finished(.failed("\(error)"))
+            // Through `finish` so the countdown timer stops and the pad drops
+            // back to idle, rather than sitting on the failure indefinitely.
+            finish(.failed("\(error)"))
             return
         }
 
+        // The user may have stopped us while the call was in flight; `disengage`
+        // has already set the outcome, and overwriting it would strand the UI
+        // in `.cooling` with no loop behind it.
+        guard !Task.isCancelled else { return }
         phase = .cooling
+        var consecutiveFailures = 0
 
         while !Task.isCancelled {
             monitor.refresh()
@@ -243,11 +254,19 @@ final class CoolingEngine {
                 commandedRPM = targets.max() ?? 0
                 snapshot = try await helper.applyTargets(targets)
                 lastError = nil
+                consecutiveFailures = 0
             } catch {
+                guard !Task.isCancelled else { return }
                 lastError = "\(error)"
                 // A single dropped call isn't fatal — the helper holds the last
-                // command for eight seconds. Persistent failure will trip its
-                // watchdog and release the fans, which is the safe outcome.
+                // command for eight seconds. Past that its watchdog has already
+                // handed the fans back (or the helper restarted and lost the
+                // session), so stop claiming to be cooling.
+                consecutiveFailures += 1
+                if consecutiveFailures >= Self.maxConsecutiveFailures {
+                    finish(.failed("\(error)"))
+                    return
+                }
             }
 
             try? await Task.sleep(for: .seconds(2))
@@ -303,6 +322,8 @@ final class CoolingEngine {
     /// crossed the user's threshold.
     func considerAutoEngage() {
         guard preferences.autoEngage, !phase.isActive else { return }
+        // Without a helper the session can only fail; don't keep trying.
+        guard helper.status.isReady else { return }
         guard case .idle = phase else { return }
         if let last = lastSessionEnded,
            Date().timeIntervalSince(last) < Self.autoEngageCooldown { return }

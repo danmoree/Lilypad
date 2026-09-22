@@ -17,6 +17,10 @@ struct MenuView: View {
     @State private var isInstalling = false
     @State private var installMessage: String?
     @State private var showSensors = false
+    /// Mirrors `SMAppService`, which owns this setting; re-read every time the
+    /// panel opens in case it was changed in System Settings.
+    @State private var launchAtLogin = LoginItem.isEnabled
+    @State private var loginItemMessage: String?
 
     private static let panelWidth: CGFloat = 300
 
@@ -42,12 +46,19 @@ struct MenuView: View {
                 readout
             }
 
+            if let loginItemMessage {
+                Notice(icon: "exclamationmark.triangle", tone: .warning,
+                       title: "Couldn't change Open at login", message: loginItemMessage)
+            }
+
             Divider()
             footer
+            credit
         }
         .padding(14)
         .frame(width: Self.panelWidth)
         .task {
+            launchAtLogin = LoginItem.isEnabled
             await helper.refreshStatus()
         }
     }
@@ -366,6 +377,19 @@ struct MenuView: View {
         isInstalling = false
     }
 
+    /// macOS owns the login item, so the toggle follows what the service
+    /// reports afterwards rather than what was asked for — a registration that
+    /// needs the user's approval in System Settings is not yet on.
+    private func setLaunchAtLogin(_ enabled: Bool) {
+        loginItemMessage = nil
+        do {
+            try LoginItem.setEnabled(enabled)
+        } catch {
+            loginItemMessage = error.localizedDescription
+        }
+        launchAtLogin = LoginItem.isEnabled
+    }
+
     // MARK: Footer
 
     private var footer: some View {
@@ -377,9 +401,25 @@ struct MenuView: View {
                 Toggle("Include extra enclosure sensors",
                        isOn: $preferences.includeExtraSensors)
                 Divider()
+                Toggle("Open at login", isOn: Binding(get: { launchAtLogin },
+                                                      set: { setLaunchAtLogin($0) }))
+                if LoginItem.needsApproval {
+                    Button("Allow Lilypad in Login Items…") {
+                        LoginItem.openLoginItemsSettings()
+                    }
+                }
+                Divider()
                 Button("Remove helper…") {
                     Task {
-                        try? await helper.uninstall()
+                        do {
+                            try await helper.uninstall()
+                        } catch {
+                            // The daemon isn't answering, so it can't remove
+                            // itself; do it behind the admin prompt instead.
+                            try? HelperInstaller.uninstall()
+                        }
+                        // The helper's own removal runs a second after it replies.
+                        try? await Task.sleep(for: .milliseconds(1500))
                         await helper.refreshStatus()
                     }
                 }
@@ -398,6 +438,19 @@ struct MenuView: View {
             .font(.callout)
             .foregroundStyle(.secondary)
         }
+    }
+
+    /// The byline at the foot of the panel. Its own rule and a tighter gap than
+    /// the panel's spacing, so it reads as a footer rather than one more row of
+    /// controls; secondary and small for the same reason.
+    private var credit: some View {
+        VStack(spacing: 8) {
+            Divider()
+            Text("Created by Daniel Moreno \u{00B7} 2026")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func timeString(_ seconds: Int) -> String {

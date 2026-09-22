@@ -4,6 +4,21 @@
 
 # Lilypad - Cool your lap!
 
+<p align="center">
+  <a href="https://github.com/danmoree/Lilypad/releases/latest/download/Lilypad.zip">
+    <img src="docs/download-mac.png" alt="Download Lilypad for macOS" width="220">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/danmoree/Lilypad/releases">
+    <img src="https://img.shields.io/github/v/release/danmoree/Lilypad?label=release" alt="Latest release">
+  </a>
+  <a href="https://github.com/danmoree/Lilypad/releases">
+    <img src="https://img.shields.io/github/downloads/danmoree/Lilypad/total?label=downloads" alt="Total downloads">
+  </a>
+</p>
+
 A menu bar app that takes over your MacBook Pro's fans for a while, so the
 bottom case cools down to a temperature that's comfortable on a lap.
 
@@ -134,9 +149,20 @@ assumes the app will misbehave:
 
 Worst realistic failure is a laptop that's briefly louder than you wanted.
 
+## Install
+
+**[Download Lilypad.zip](https://github.com/danmoree/Lilypad/releases/latest/download/Lilypad.zip)** — requires macOS 15 or later on a Mac with fans (MacBook Air is fanless, so there's nothing to control).
+
+Unzip it and drag **Lilypad.app** into your Applications folder, then open it.
+There is no dock icon and no window — the app appears straight in the menu bar.
+
 ## Setup
 
-1. Build and run (⌘R in Xcode), or use the copy in `/Applications`.
+1. Open Lilypad from `/Applications` (or build and run it with ⌘R in Xcode).
+   Gear menu → **Open at login** keeps it there across restarts. macOS tracks
+   that login item by the app's location, so install it before switching this
+   on; if you've previously turned a Lilypad login item off by hand, macOS asks
+   you to re-allow it under System Settings → General → Login Items.
 2. Open the menu and click **Enable fan control**. You'll be asked for your
    administrator password **once** — this installs the helper as a LaunchDaemon.
 3. Click the pad.

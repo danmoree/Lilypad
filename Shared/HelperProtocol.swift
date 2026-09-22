@@ -16,7 +16,7 @@ import Foundation
 nonisolated enum HelperInfo {
     /// Bumped whenever the XPC contract or helper behaviour changes; the app
     /// compares this against the running helper and reinstalls on mismatch.
-    static let version = "1.0.0"
+    static let version = "1.0.1"
 
     static let machServiceName = "com.lilypad.helper"
     static let daemonLabel = "com.lilypad.helper"

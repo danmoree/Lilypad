@@ -113,13 +113,18 @@ nonisolated final class HelperService: NSObject, NSXPCListenerDelegate,
 
     // MARK: - Client validation
 
+    private static let clientRequirement = """
+    identifier "\(HelperInfo.clientBundleIdentifier)" \
+    and anchor apple generic \
+    and certificate leaf[subject.OU] = "\(HelperInfo.clientTeamIdentifier)"
+    """
+
     /// Requires the connecting process to be signed by the expected team and to
     /// carry the app's bundle identifier, and to be running as a normal user.
     ///
-    /// Validation is by PID, which is in principle open to PID-reuse races. That
-    /// is accepted here: the only capability behind this door is "change a fan
-    /// speed within limits the firmware already allows", so the worst outcome of
-    /// a successful impersonation is a noisy laptop.
+    /// This up-front check is by PID, which is in principle open to PID-reuse
+    /// races, so the same requirement is also installed on the connection with
+    /// `setCodeSigningRequirement`, which XPC enforces against the audit token.
     private func isClientTrusted(_ connection: NSXPCConnection) -> Bool {
         let uid = connection.effectiveUserIdentifier
         guard uid != 0 else {
@@ -137,13 +142,8 @@ nonisolated final class HelperService: NSObject, NSXPCListenerDelegate,
             return false
         }
 
-        let requirementText = """
-        identifier "\(HelperInfo.clientBundleIdentifier)" \
-        and anchor apple generic \
-        and certificate leaf[subject.OU] = "\(HelperInfo.clientTeamIdentifier)"
-        """
         var requirement: SecRequirement?
-        guard SecRequirementCreateWithString(requirementText as CFString, [], &requirement)
+        guard SecRequirementCreateWithString(Self.clientRequirement as CFString, [], &requirement)
                 == errSecSuccess, let requirement
         else { return false }
 
@@ -159,6 +159,9 @@ nonisolated final class HelperService: NSObject, NSXPCListenerDelegate,
     func listener(_ listener: NSXPCListener,
                   shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
         guard isClientTrusted(connection) else { return false }
+        // The PID check above is racy; this one is enforced by XPC against the
+        // connection's audit token on every message, which closes that gap.
+        connection.setCodeSigningRequirement(Self.clientRequirement)
 
         connection.exportedInterface = NSXPCInterface(with: LilypadHelperProtocol.self)
         connection.exportedObject = self
